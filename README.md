@@ -16,6 +16,8 @@ The system should be extensible for future commands and should accept an arbitra
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------
 
+Please use "Microsoft Visual C++ 2019".
+
     // Note 1: All commands are case sensetive
     //         (since SPEC does not contain explicit instructions for it)
 
