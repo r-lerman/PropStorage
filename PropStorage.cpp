@@ -10,10 +10,10 @@ int main()
     st.defineProperty("very_long", Storage::PropertyType::Type_Int64);
     st.defineProperty("dbl", Storage::PropertyType::Type_Double);
 
-    // Note 1: All commands are case sensetive
+    // Note 1: All commands are case sensitive
     //         (since SPEC does not contain explicit instructions for it)
 
-    // Note 2: In console I allow to difine new properties in the storage if the propery is not yet defined.
+    // Note 2: In console I allow to define new properties in the storage if the property is not yet defined.
     //         I will assign property type based on the value (using the best assumption) in this case.
 
     // Note 3: I implemented "DELETE properyName" command in addition to "SET properyName=value", "GET properyName" and "GET *".
