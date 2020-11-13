@@ -13,3 +13,22 @@ GET propertyname will print out the current value of the target object’s membe
 GET * will print out a list of all target object members and their current values.
 
 The system should be extensible for future commands and should accept an arbitrary object, such that another developer could insert another object into the system and rely on the command console to get and set the properties correctly.
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+    // Note 1: All commands are case sensetive
+    //         (since SPEC does not contain explicit instructions for it)
+
+    // Note 2: In console I allow to difine new properties in the storage if the propery is not yet defined.
+    //         I will assign property type based on the value (using the best assumption) in this case.
+
+    // Note 3: I implemented "DELETE properyName" command in addition to "SET properyName=value", "GET properyName" and "GET *".
+    //         Use "EXIT" command for closing the console.
+    //         New commands can be easily added in "Console::ProcessCommand" function.
+
+    // Note 4: Steps for adding new property type:
+    //         1) Add new type to Storage::PropertyType enum class.
+    //         2) Define setDefaultValue() and toString() functions for PropertyValue template class for a new type.
+    //         3) Add new type to "PropertyStorage::CreateProperty" function.
+    //         4) Create "class NEWTYPEProperty : public Property, public PropertyValue<NEWTYPE>"
+    //            and overload "setFromString" and "copy" functions. 
