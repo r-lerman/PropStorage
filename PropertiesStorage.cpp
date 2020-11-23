@@ -6,120 +6,252 @@ namespace Storage
 {
     // String type template functions ------------------------------------------------
 
-    void PropertyValue<String>::setDefaultValue()
+    void VariantValue<String>::setDefaultValue()
     {
         m_value.clear();
     }
 
-    template<> std::string PropertyValue<String>::toString() const
+    template<> std::string VariantValue<String>::toString() const
     {
         return "\"" + m_value + "\"";
     }
 
+    template<> bool PropValue<String>::fromString(const std::string& value)
+    {
+        set(value); return true;
+    }
+
     // Int32 type template functions ------------------------------------------------
 
-    void PropertyValue<Int32>::setDefaultValue()
+    void VariantValue<Int32>::setDefaultValue()
     {
         m_value = 0;
     }
 
-    template<> std::string PropertyValue<Int32>::toString() const
+    template<> std::string VariantValue<Int32>::toString() const
     {
         std::ostringstream oss;
         oss << m_value;
         return oss.str();
+    }
+
+    template<> bool PropValue<Int32>::fromString(const std::string& value)
+    {
+        m_lastError.clear();
+        try
+        {
+            Int32 n = std::stol(value);
+            set(n);
+            return true;
+        }
+        catch (const std::invalid_argument)
+        {
+            m_lastError = "Invalid property value";
+        }
+        catch (const std::out_of_range)
+        {
+            m_lastError = "Out of Range error";
+        }
+        return false;
     }
 
     // Int64 type template functions ------------------------------------------------
 
-    void PropertyValue<Int64>::setDefaultValue()
+    void VariantValue<Int64>::setDefaultValue()
     {
         m_value = 0;
     }
 
-    template<> std::string PropertyValue<Int64>::toString() const
+    template<> std::string VariantValue<Int64>::toString() const
     {
         std::ostringstream oss;
         oss << m_value;
         return oss.str();
     }
 
+    template<> bool PropValue<Int64>::fromString(const std::string& value)
+    {
+        m_lastError.clear();
+        try
+        {
+            Int64 n = std::stoll(value);
+            set(n);
+            return true;
+        }
+        catch (const std::invalid_argument)
+        {
+            m_lastError = "Invalid property value";
+        }
+        catch (const std::out_of_range)
+        {
+            m_lastError = "Out of Range error";
+        }
+        return false;
+    }
+
     // Double type template functions ------------------------------------------------
 
-    void PropertyValue<Double>::setDefaultValue()
+    void VariantValue<Double>::setDefaultValue()
     {
         m_value = 0.0;
     }
 
-    template<> std::string PropertyValue<Double>::toString() const
+    template<> std::string VariantValue<Double>::toString() const
     {
         std::ostringstream oss;
         oss << std::setprecision(5) << std::setiosflags(std::ios::fixed) << m_value;
         return oss.str();
     }
 
+    template<> bool PropValue<Double>::fromString(const std::string& value)
+    {
+        m_lastError.clear();
+        try
+        {
+            Double d = std::stold(value);
+            set(d);
+            return true;
+        }
+        catch (const std::invalid_argument)
+        {
+            m_lastError = "Invalid property value";
+        }
+        catch (const std::out_of_range)
+        {
+            m_lastError = "Out of Range error";
+        }
+        return false;
+    }
+
     // PropertyStorage functions -----------------------------------------------------------------------------------
 
-    inline String PropertyStorage::GetStringProp(const std::string& prop_name) const
+#define GET_PROP(f) \
+    try { val = f(prop_name); return true; } \
+    catch (std::string err) { m_lastError = err; } \
+    return false;
+
+    bool PropertyStorage::getProp(const std::string& prop_name, String& val) const
     {
-        const Property* p = getProperty(prop_name);
-        return (p && p->getType() == PropertyType::Type_String) ? dynamic_cast<const Storage::StringProperty*>(p)->get() : String();
+        GET_PROP(getString)
     }
 
-    inline Int32 PropertyStorage::GetInt32Prop(const std::string& prop_name) const
+    bool PropertyStorage::getProp(const std::string& prop_name, Int32& val) const
     {
-        const Property* p = getProperty(prop_name);
-        return (p && p->getType() == PropertyType::Type_Int32) ? dynamic_cast<const Storage::Int32Property*>(p)->get() : 0;
+        GET_PROP(getInt32)
     }
 
-    inline Int64 PropertyStorage::GetInt64Prop(const std::string& prop_name) const
+    bool PropertyStorage::getProp(const std::string& prop_name, Int64& val) const
     {
-        const Property* p = getProperty(prop_name);
-        return (p && p->getType() == PropertyType::Type_Int64) ? dynamic_cast<const Storage::Int64Property*>(p)->get() : 0;
+        GET_PROP(getInt64)
     }
 
-    inline Double PropertyStorage::GetDoubleProp(const std::string& prop_name) const
+    bool PropertyStorage::getProp(const std::string& prop_name, Double& val) const
     {
-        const Property* p = getProperty(prop_name);
-        return (p && p->getType() == PropertyType::Type_Double) ? dynamic_cast<const Storage::DoubleProperty*>(p)->get() : 0.0;
+        GET_PROP(getDouble)
     }
 
-    Property* PropertyStorage::CreateProperty(PropertyType prop_type)
+#define GET_PROP_BY_TYPE(type_name, type) \
+    const Property* p = getProperty(prop_name); \
+    if (!p) throw "Property not defined"; \
+    if (p->getType() != PropertyType::type_name) throw "Type mismatch"; \
+    return dynamic_cast<const Storage::PropValue<type>*>(p)->get();
+
+    inline String PropertyStorage::getString(const std::string& prop_name) const
     {
-        if (prop_type == PropertyType::Type_String)
-            return new StringProperty();
-        else if (prop_type == PropertyType::Type_Int32)
-            return new Int32Property();
-        else if (prop_type == PropertyType::Type_Int64)
-            return new Int64Property();
-        else if (prop_type == PropertyType::Type_Double)
-            return new DoubleProperty();
+        GET_PROP_BY_TYPE(Type_String, String)
+    }
+
+    inline Int32 PropertyStorage::getInt32(const std::string& prop_name) const
+    {
+        GET_PROP_BY_TYPE(Type_Int32, Int32)
+    }
+
+    inline Int64 PropertyStorage::getInt64(const std::string& prop_name) const
+    {
+        GET_PROP_BY_TYPE(Type_Int64, Int64)
+    }
+
+    inline Double PropertyStorage::getDouble(const std::string& prop_name) const
+    {
+        GET_PROP_BY_TYPE(Type_Double, Double)
+    }
+
+    // -------------------------------------------------------------------------------------------------------
+
+#define SET_PROP(type, class_name) \
+    m_lastError.clear(); \
+    PropertyMap::const_iterator it = m_propStorage.find(prop_name); \
+    if (it == m_propStorage.end()) { m_lastError = "Property not defined"; return false; } \
+    if (it->second->getType() != PropertyType::type) { m_lastError = "Type mismatch"; return false; } \
+    dynamic_cast<Storage::PropValue<class_name>*>(it->second)->set(val); \
+    return true;
+
+    bool PropertyStorage::setProp(const std::string& prop_name, const String& val) 
+    {
+        SET_PROP(Type_String, String)
+    }
+
+    bool PropertyStorage::setProp(const std::string& prop_name, const Int32& val)
+    {
+        SET_PROP(Type_Int32, Int32)
+    }
+
+    bool PropertyStorage::setProp(const std::string& prop_name, const Int64& val)
+    {
+        SET_PROP(Type_Int64, Int64)
+    }
+
+    bool PropertyStorage::setProp(const std::string& prop_name, const Double& val)
+    {
+        SET_PROP(Type_Double, Double)
+    }
+
+    // -------------------------------------------------------------------------------------------------------
+
+    Property* PropertyStorage::createProperty(PropertyType prop_type)
+    {
+        try
+        {
+            if (prop_type == PropertyType::Type_String)
+                return new PropValue<String>();
+            else if (prop_type == PropertyType::Type_Int32)
+                return new PropValue<Int32>();
+            else if (prop_type == PropertyType::Type_Int64)
+                return new PropValue<Int64>();
+            else if (prop_type == PropertyType::Type_Double)
+                return new PropValue<Double>();
+        }
+        catch(...) { }
 
         return nullptr;
     }
 
-    Property* PropertyStorage::CreateProperty(const std::string& value)
+    Property* PropertyStorage::createProperty(const std::string& value)
     {
-        if (isNumber(value))
+        try
         {
-            std::string::size_type idx = value.find_first_of(".");
-            if (idx != std::string::npos)
-                return new DoubleProperty();
-            else
+            if (isNumber(value))
             {
-                try
+                std::string::size_type idx = value.find_first_of(".");
+                if (idx != std::string::npos)
+                    return new PropValue<Double>();
+                else
                 {
-                    Int32 n = std::stol(value);
-                    return new Int32Property();
-                }
-                catch (const std::out_of_range)
-                {
-                    return new Int64Property();
+                    try
+                    {
+                        Int32 n = std::stol(value);
+                        return new PropValue<Int32>();
+                    }
+                    catch (const std::out_of_range)
+                    {
+                        return new PropValue<Int64>();
+                    }
                 }
             }
+            else
+                return new PropValue<String>();
         }
-        else
-            return new StringProperty();
+        catch (...) {}
 
         return nullptr;
     }
@@ -140,7 +272,7 @@ namespace Storage
             return false;
         }
 
-        Property *p = CreateProperty(prop_type);
+        Property *p = createProperty(prop_type);
         if (!p)
         {
             m_lastError = "Wrong property type";

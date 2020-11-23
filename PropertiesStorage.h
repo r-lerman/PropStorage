@@ -3,6 +3,7 @@
 #include <sstream>
 #include <iostream>
 #include <map>
+#include <typeinfo>
 
 namespace Storage
 {
@@ -13,18 +14,19 @@ namespace Storage
 
     enum class PropertyType
     {
+        Type_Unknown, 
         Type_String,
         Type_Int32,
         Type_Int64,
         Type_Double
     };
 
-    template<class T> class PropertyValue
+    template<class T> class VariantValue
     {
     public:
 
-        PropertyValue() { setDefaultValue(); }
-        PropertyValue(const T& val) : m_value(val) { }
+        VariantValue() { setDefaultValue(); }
+        VariantValue(const T& val) : m_value(val) { }
 
         void setDefaultValue();
         void operator= (const T& rVal) { set(rVal); }
@@ -37,7 +39,7 @@ namespace Storage
         T m_value;
     };
 
-    template<class T> inline std::ostream& operator<<(std::ostream& out, const PropertyValue<T>& v)
+    template<class T> inline std::ostream& operator<<(std::ostream& out, const VariantValue<T>& v)
     {
         return out << v.toString();
     }
@@ -50,8 +52,9 @@ namespace Storage
 
         virtual PropertyType getType() const = 0;
         virtual std::string getAsString() const = 0;
-        virtual bool setFromString(const std::string& value) = 0;
+        virtual bool fromString(const std::string& value) = 0;
         virtual bool copy(const Property* p) = 0;
+        virtual bool operator== (const Property* p) = 0;
 
         std::string getLastError() const { return m_lastError; }
 
@@ -67,57 +70,28 @@ namespace Storage
 
     // --------------------------------------------------------------------------------------------
 
-    class StringProperty : public Property, public PropertyValue<String>
+    template<class T> class PropValue : public Property, public VariantValue<T>
     {
     public:
 
-        StringProperty() { }
-        StringProperty(const String& s) : PropertyValue<String>(s) { }
+        PropValue() { }
+        PropValue(const T& val) : VariantValue<T>(val) { }
+        std::string getAsString() const { return VariantValue<T>::toString(); }
+        void set(const T& val) { VariantValue<T>::set(val); }
+        bool fromString(const std::string& value);
 
-        std::string getAsString() const { return toString(); }
-        PropertyType getType() const { return PropertyType::Type_String; }
-        bool setFromString(const std::string& value) { set(value); return true; }
-
-        bool copy(const Property* p)
+        PropertyType getType() const 
         { 
-            m_lastError.clear();
-            if (p && p->getType() == getType())
-            {
-                set(dynamic_cast<const StringProperty*>(p)->get());
-                return true;
-            }
-            m_lastError = "Illigal operation";
-            return false;
-        }
-    };
+            if (typeid(VariantValue<T>::get()) == typeid(String))
+                return PropertyType::Type_String;
+            else if (typeid(VariantValue<T>::get()) == typeid(Int32))
+                return PropertyType::Type_Int32;
+            else if (typeid(VariantValue<T>::get()) == typeid(Int64))
+                return PropertyType::Type_Int64;
+            else if (typeid(VariantValue<T>::get()) == typeid(Double))
+                return PropertyType::Type_Double;
 
-    class Int32Property : public Property, public PropertyValue<Int32>
-    {
-    public:
-
-        Int32Property() { }
-        Int32Property(Int32 n) : PropertyValue<Int32>(n) { }
-
-        std::string getAsString() const { return toString(); }
-        PropertyType getType() const { return PropertyType::Type_Int32; }
-        bool setFromString(const std::string& value) 
-        { 
-            m_lastError.clear();
-            try
-            {
-                Int32 n = std::stol(value);
-                set(n);
-                return true;
-            }
-            catch (const std::invalid_argument) 
-            {
-                m_lastError = "Invalid property value";
-            }
-            catch (const std::out_of_range) 
-            {
-                m_lastError = "Out of Range error";
-            }
-            return false;
+            return PropertyType::Type_Unknown;
         }
 
         bool copy(const Property* p)
@@ -125,95 +99,17 @@ namespace Storage
             m_lastError.clear();
             if (p && p->getType() == getType())
             {
-                set(dynamic_cast<const Int32Property*>(p)->get());
+                VariantValue<T>::set( dynamic_cast<const Storage::PropValue<T>*>(p)->VariantValue<T>::get() );
                 return true;
             }
             m_lastError = "Illigal operation";
             return false;
         }
-    };
 
-    class Int64Property : public Property, public PropertyValue<Int64>
-    {
-    public:
-
-        Int64Property() { }
-        Int64Property(Int64 n) : PropertyValue<Int64>(n) { }
-
-        std::string getAsString() const { return toString(); }
-        PropertyType getType() const { return PropertyType::Type_Int64; }
-        bool setFromString(const std::string& value)
+        bool operator== (const Property* p)
         {
-            m_lastError.clear();
-            try
-            {
-                Int64 n = std::stoll(value);
-                set(n);
-                return true;
-            }
-            catch (const std::invalid_argument)
-            {
-                m_lastError = "Invalid property value";
-            }
-            catch (const std::out_of_range)
-            {
-                m_lastError = "Out of Range error";
-            }
-            return false;
-        }
-
-        bool copy(const Property* p)
-        {
-            m_lastError.clear();
-            if (p && p->getType() == getType())
-            {
-                set(dynamic_cast<const Int64Property*>(p)->get());
-                return true;
-            }
-            m_lastError = "Illigal operation";
-            return false;
-        }
-    };
-
-    class DoubleProperty : public Property, public PropertyValue<Double>
-    {
-    public:
-
-        DoubleProperty() { }
-        DoubleProperty(Double n) : PropertyValue<Double>(n) { }
-
-        std::string getAsString() const { return toString(); }
-        PropertyType getType() const { return PropertyType::Type_Double; }
-        bool setFromString(const std::string& value)
-        {
-            m_lastError.clear();
-            try
-            {
-                Double d = std::stold(value);
-                set(d);
-                return true;
-            }
-            catch (const std::invalid_argument)
-            {
-                m_lastError = "Invalid property value";
-            }
-            catch (const std::out_of_range)
-            {
-                m_lastError = "Out of Range error";
-            }
-            return false;
-        }
-
-        bool copy(const Property* p)
-        {
-            m_lastError.clear();
-            if (p && p->getType() == getType())
-            {
-                set(dynamic_cast<const DoubleProperty*>(p)->get());
-                return true;
-            }
-            m_lastError = "Illigal operation";
-            return false;
+            return p && p->getType() == getType() && 
+                   dynamic_cast<const Storage::PropValue<T>*>(p)->VariantValue<T>::get() == VariantValue<T>::get();
         }
     };
 
@@ -256,15 +152,25 @@ namespace Storage
         
         std::string getLastError() const { return m_lastError; }
 
-        static Property* CreateProperty(PropertyType prop_type);
-        static Property* CreateProperty(const std::string &value);
+        static Property* createProperty(PropertyType prop_type);
+        static Property* createProperty(const std::string &value);
 
         // Helper methods for convinience (if you shure about the type of the property and you know that propery is defined)
 
-        String GetStringProp(const std::string& prop_name) const;
-        Int32 GetInt32Prop(const std::string& prop_name) const;
-        Int64 GetInt64Prop(const std::string& prop_name) const;
-        Double GetDoubleProp(const std::string& prop_name) const;
+        bool getProp(const std::string& prop_name, String &val) const;
+        bool getProp(const std::string& prop_name, Int32& val) const;
+        bool getProp(const std::string& prop_name, Int64& val) const;
+        bool getProp(const std::string& prop_name, Double& val) const;
+
+        String getString(const std::string& prop_name) const;
+        Int32 getInt32(const std::string& prop_name) const;
+        Int64 getInt64(const std::string& prop_name) const;
+        Double getDouble(const std::string& prop_name) const;
+
+        bool setProp(const std::string& prop_name, const String& val);
+        bool setProp(const std::string& prop_name, const Int32& val);
+        bool setProp(const std::string& prop_name, const Int64& val);
+        bool setProp(const std::string& prop_name, const Double& val);
 
     private:
         std::string m_storageName;

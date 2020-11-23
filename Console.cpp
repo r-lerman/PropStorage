@@ -53,9 +53,9 @@ void Console::ProcessCommand(std::ostream& out, std::string cmn_name, std::strin
         {
             if (storage.isProperyDefined(prop_name))
             {
-                Storage::Property *prop = Storage::PropertyStorage::CreateProperty(storage.getProperty(prop_name)->getType());
+                Storage::Property *prop = Storage::PropertyStorage::createProperty(storage.getProperty(prop_name)->getType());
                 
-                if (prop->setFromString(prop_value))
+                if (prop->fromString(prop_value))
                 {
                     if (!storage.setProperty(prop_name, prop))
                         out << storage.getLastError() << std::endl;
@@ -67,16 +67,16 @@ void Console::ProcessCommand(std::ostream& out, std::string cmn_name, std::strin
             }
             else
             {
-                // Difine a new property.
+                // Define a new property.
                 // Find property type based on the value using the best assumption.
 
-                Storage::Property* prop = Storage::PropertyStorage::CreateProperty(prop_value);
+                Storage::Property* prop = Storage::PropertyStorage::createProperty(prop_value);
 
                 if (!prop)
                     out << "Cannot determine type for a new (not defined) property." << std::endl;
                 else
                 {
-                    if (prop->setFromString(prop_value))
+                    if (prop->fromString(prop_value))
                     {
                         if (!storage.defineProperty(prop_name, prop->getType()) || !storage.setProperty(prop_name, prop))
                             out << storage.getLastError() << std::endl;
