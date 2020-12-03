@@ -347,20 +347,20 @@ namespace Storage
 
     void PropertyStorage::operator= (const PropertyStorage& rVal)
     {
-        for (PropertyMap::iterator it = m_propStorage.begin(); it != m_propStorage.end(); it++)
+        for (auto& it : m_propStorage)
         {
-            delete it->second;
-            it->second = nullptr;
+            delete it.second;
+            it.second = nullptr;
         }
-
         m_propStorage.clear();
+
         m_storageName = rVal.m_storageName;
         m_lastError.clear();
 
-        for (PropertyMap::const_iterator it = rVal.m_propStorage.begin(); it != rVal.m_propStorage.end(); it++)
+        for (auto& it : rVal.m_propStorage)
         {
-            if (defineProperty(it->first, it->second->getType()))
-                setProperty(it->first, it->second);
+            if (defineProperty(it.first, it.second->getType()))
+                setProperty(it.first, it.second);
         }
     }
 

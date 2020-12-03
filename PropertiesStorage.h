@@ -18,7 +18,7 @@ namespace Storage
         Type_String,
         Type_Int32,
         Type_Int64,
-        Type_Double
+        Type_Double,
     };
 
     template<class T> class VariantValue
@@ -77,18 +77,19 @@ namespace Storage
         PropValue() { }
         PropValue(const T& val) : VariantValue<T>(val) { }
         std::string getAsString() const { return VariantValue<T>::toString(); }
+        T get() const { return VariantValue<T>::get(); }
         void set(const T& val) { VariantValue<T>::set(val); }
         bool fromString(const std::string& value);
 
         PropertyType getType() const 
         { 
-            if (typeid(VariantValue<T>::get()) == typeid(String))
+            if (typeid(get()) == typeid(String))
                 return PropertyType::Type_String;
-            else if (typeid(VariantValue<T>::get()) == typeid(Int32))
+            else if (typeid(get()) == typeid(Int32))
                 return PropertyType::Type_Int32;
-            else if (typeid(VariantValue<T>::get()) == typeid(Int64))
+            else if (typeid(get()) == typeid(Int64))
                 return PropertyType::Type_Int64;
-            else if (typeid(VariantValue<T>::get()) == typeid(Double))
+            else if (typeid(get()) == typeid(Double))
                 return PropertyType::Type_Double;
 
             return PropertyType::Type_Unknown;
@@ -99,7 +100,7 @@ namespace Storage
             m_lastError.clear();
             if (p && p->getType() == getType())
             {
-                VariantValue<T>::set( dynamic_cast<const Storage::PropValue<T>*>(p)->VariantValue<T>::get() );
+                VariantValue<T>::set( dynamic_cast<const Storage::PropValue<T>*>(p)->get() );
                 return true;
             }
             m_lastError = "Illigal operation";
@@ -108,14 +109,14 @@ namespace Storage
 
         bool operator== (const Property* p)
         {
-            return p && p->getType() == getType() && 
-                   dynamic_cast<const Storage::PropValue<T>*>(p)->VariantValue<T>::get() == VariantValue<T>::get();
+            return p && p->getType() == getType() &&
+                   dynamic_cast<const Storage::PropValue<T>*>(p)->get() == get();
         }
     };
 
     // --------------------------------------------------------------------------------------------
 
-    typedef std::map<std::string, Property*> PropertyMap;
+    using PropertyMap = std::map<std::string, Property*>;
 
     class PropertyStorage
     {
@@ -126,12 +127,11 @@ namespace Storage
         PropertyStorage(const std::string &name) : m_storageName(name) { }
         ~PropertyStorage() 
         { 
-            for (PropertyMap::iterator it = m_propStorage.begin(); it != m_propStorage.end(); it++)
+            for (auto& it : m_propStorage)
             {
-                delete it->second;
-                it->second = nullptr;
+                delete it.second;
+                it.second = nullptr;
             }
-
             m_propStorage.clear(); 
         }
         void operator= (const PropertyStorage& rVal);
@@ -180,8 +180,8 @@ namespace Storage
     
     inline std::ostream& operator<<(std::ostream& out, const PropertyStorage &p)
     {
-        for (PropertyMap::const_iterator it = p.m_propStorage.begin(); it != p.m_propStorage.end(); it++)
-            out << it->first << " = " << it->second << std::endl;
+        for (const auto& it : p.m_propStorage)
+            out << it.first << " = " << it.second << std::endl;
 
         return out;
     }
