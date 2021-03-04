@@ -155,7 +155,7 @@ namespace Storage
         static Property* createProperty(PropertyType prop_type);
         static Property* createProperty(const std::string &value);
 
-        // Helper methods for convinience (if you shure about the type of the property and you know that propery is defined)
+        // Helper methods for convinience (if you sure about the type of the property and you know that propery is defined)
 
         bool getProp(const std::string& prop_name, String &val) const;
         bool getProp(const std::string& prop_name, Int32& val) const;
